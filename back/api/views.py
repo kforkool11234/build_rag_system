@@ -6,10 +6,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from .serializer import UserSerializer
 from .serializer import CollectionSerializer
-from vectorise.App import s_vec
-from vectorise.models import UserCollection
+from ragged.App import s_vec
+from ragged.models import UserCollection
 from .serializer import CollectionSerializer
-from vectorise.search import semantic_search
+from ragged.search import semantic_search
 # Create your views here.
 
 @api_view(['POST'])

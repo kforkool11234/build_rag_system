@@ -9,8 +9,11 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+from decouple import config
 from pathlib import Path
+from datetime import timedelta
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,15 +40,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'ragged',
     'rest_framework',
     'api',
-    'vectorise',
+    'ragged',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
+}
+SIMPLE_JWT = {
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.SlidingToken",),
+    "SLIDING_TOKEN_LIFETIME": timedelta(hours=10),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=7),
+    "UPDATE_LAST_LOGIN": True,
 }
 
 MIDDLEWARE = [
@@ -84,9 +92,9 @@ WSGI_APPLICATION = 'back.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "u_rag",
-        "USER": "admin",
-        "PASSWORD": "Kaush2005",
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
         "HOST": "127.0.0.1",
         "PORT": "5432",
     }

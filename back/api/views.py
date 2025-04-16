@@ -57,11 +57,16 @@ def vectorise(request):
 def search(request):
     query=request.data.get('query')
     c_name = request.data.get('c_name')
+    api=request.data.get('api')
     if not query:
         return Response({'error': 'No query found'}, status=status.HTTP_400_BAD_REQUEST)
     try:
         collection = UserCollection.objects.get(user=request.user,c_name=c_name)
     except UserCollection.DoesNotExist:
         return Response({'error': 'Collection not found for this user.'}, status=status.HTTP_404_NOT_FOUND)
-    result=semantic_search(query,collection.c_id)
+    if request.data.get('role'):
+        role=request.data.get('role')
+        result=semantic_search(query,collection.c_id,api,role)
+    else:
+        result=semantic_search(query,collection.c_id,api)
     return Response({'result':result}, status=status.HTTP_200_OK)

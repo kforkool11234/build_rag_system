@@ -13,4 +13,6 @@ urlpatterns=[
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('upload/', views.vectorise, name='vectorise'),
     path('search/', views.search, name='search'),
+    path('collection/', views.get_collection, name='collection'),
+    path('chat/',views.chat,name="chat")
 ]

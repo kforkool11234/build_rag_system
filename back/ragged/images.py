@@ -4,16 +4,19 @@ import cv2
 import numpy as np
 import chromadb
 import easyocr
-from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-from tensorflow.keras.preprocessing import image as keras_image
-from tensorflow.keras.models import Model
+import torch
+import open_clip
+from PIL import Image
 from io import BytesIO
 from PIL import Image
-
+import numpy as np
 # Load MobileNetV2 model for feature extraction
-base_model = MobileNetV2(weights="imagenet", include_top=False, pooling="avg")
-model = Model(inputs=base_model.input, outputs=base_model.output)
+model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
+tokenizer = open_clip.get_tokenizer('ViT-B-32')
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = model.to(device).eval()
 
 # Initialize OCR
 reader = easyocr.Reader(['en'])
@@ -36,13 +39,10 @@ def extract_text(img):
 
 def get_image_embedding(img_path):
     """Extract feature embedding from image."""
-    img = keras_image.load_img(img_path, target_size=(224, 224))
-    img_array = keras_image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
-    
-    embedding = model.predict(img_array)
-    return embedding.flatten().tolist()
+    image = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
+    with torch.no_grad():
+        embedding = model.encode_image(image)
+        return embedding.cpu().squeeze().tolist()
 
 def process_and_store_image(img_path,c_id):
     collection = chroma_client.get_or_create_collection(name=c_id)

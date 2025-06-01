@@ -8,13 +8,13 @@ from docx import Document
 import nltk
 from nltk.tokenize import sent_tokenize
 from transformers import pipeline
-from sentence_transformers import SentenceTransformer
+import open_clip
 import chromadb
 from tqdm.auto import tqdm
 
 # Download NLTK resources
 nltk.download('punkt')
-
+tokenizer = open_clip.get_tokenizer('ViT-B-32')
 # Check for GPU and set device
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
@@ -25,7 +25,7 @@ summarizer = pipeline(
     model="sshleifer/distilbart-cnn-12-6",
     device=0 if device == "cuda" else -1  # Use GPU if available
 )
-embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=device)
+embedding_model,_,_ = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
 
 # Initialize Chroma DB
 chroma_client = chromadb.PersistentClient(path="chroma_db")
@@ -136,54 +136,68 @@ def summarize_chunks_batch(chunks: List[str]) -> List[str]:
     
     return summaries
 
-def store_in_chroma(c_id,chunks: List[str], filename: str, mode: str = "summary"):
+def store_in_chroma(c_id, chunks: List[str], filename: str, mode: str = "summary"):
     collection = chroma_client.get_or_create_collection(
-    name=c_id,  # Unified name
-    metadata={"hnsw:space": "cosine"}
-)
-    """Store chunks with optional summarization."""
+        name=c_id,
+        metadata={"hnsw:space": "cosine"}
+    )
+
     batch_size = 8 if device == "cuda" else 4
 
-    if mode == "summary":
-        # Summarize chunks in batches (grouping 4 chunks at a time)
-        summaries = summarize_chunks_batch(chunks)
-        # Compute one embedding per summary (each summarizing 4 chunks)
-        group_embeddings = embedding_model.encode(summaries, batch_size=batch_size).tolist()
+    final_ids = []
+    final_metadatas = []
+    final_documents = []
+    final_embeddings = []
 
-        # Now, for each group of 4 chunks, duplicate the group embedding for each chunk
-        final_ids = []
-        final_metadatas = []
-        final_documents = []
-        final_embeddings = []
+    if mode == "summary":
         group_size = 4  # Number of chunks per summary
-        num_groups = len(summaries)  # Should be ceil(len(chunks) / group_size)
-        for i in range(num_groups):
+        summaries = summarize_chunks_batch(chunks, group_size=group_size)  # Make sure this respects group size
+
+        # Get one embedding per summary
+        with torch.no_grad():
+            tokens = tokenizer(summaries).to(device)
+            group_embeddings = embedding_model.encode_text(tokens)
+            group_embeddings = group_embeddings / group_embeddings.norm(dim=-1, keepdim=True)
+            group_embeddings = group_embeddings.cpu().tolist()
+        # Distribute group embeddings to each chunk in its group
+        for i, group_embedding in enumerate(group_embeddings):
             start_idx = i * group_size
             end_idx = min(start_idx + group_size, len(chunks))
-            # For each chunk in the current group, assign the same embedding (from group_embeddings[i])
             for j in range(start_idx, end_idx):
-                final_ids.append(f"{filename}_chunk_{j}")
-                final_metadatas.append({"filename": filename, "mode": mode,"type": "text", "original_chunk": chunks[j]})
                 final_documents.append(chunks[j])
-                final_embeddings.append(group_embeddings[i])
-
-        # For debugging, you can uncomment the next line to ensure all lists have the same length.
-        # assert len(final_ids) == len(final_metadatas) == len(final_documents) == len(final_embeddings)
+                final_embeddings.append(group_embedding)
+                final_metadatas.append({
+                    "filename": filename,
+                    "mode": mode,
+                    "summary": summaries[i],
+                    "type": "text",
+                    "original_chunk": chunks[j]
+                })
+                final_ids.append(f"{filename}_chunk_{j}")
     else:
-        # Use full chunks without summarization
-        final_embeddings = embedding_model.encode(chunks, batch_size=batch_size).tolist()
+        # No summarization: one embedding per chunk
+        with torch.no_grad():
+            tokens = tokenizer(chunks).to(device)
+            final_embeddings = embedding_model.encode_text(tokens)
+            final_embeddings = final_embeddings / final_embeddings.norm(dim=-1, keepdim=True)
+            final_embeddings = final_embeddings.cpu().tolist()
         final_documents = chunks
-        final_metadatas = [{"filename": filename, "mode": mode,"type":"text", "original_chunk": chunk} for chunk in chunks]
+        final_metadatas = [{
+            "filename": filename,
+            "mode": mode,
+            "type": "text",
+            "original_chunk": chunk
+        } for chunk in chunks]
         final_ids = [f"{filename}_chunk_{i}" for i in range(len(chunks))]
 
     # Batch add to Chroma
     with tqdm(total=len(final_documents), desc="Storing in database") as pbar:
         for i in range(0, len(final_documents), 100):  # Chroma batch size
             collection.add(
-                documents=final_documents[i:i+100],
-                embeddings=final_embeddings[i:i+100],
-                metadatas=final_metadatas[i:i+100],
-                ids=final_ids[i:i+100]
+                documents=final_documents[i:i + 100],
+                embeddings=final_embeddings[i:i + 100],
+                metadatas=final_metadatas[i:i + 100],
+                ids=final_ids[i:i + 100]
             )
             pbar.update(min(100, len(final_documents) - i))
 

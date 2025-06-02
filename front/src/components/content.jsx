@@ -67,7 +67,7 @@ function Content() {
             const botMessageText = await axios.post("http://127.0.0.1:8000/search/",{
               "query":response.data.message,
               "c_name":coll,
-              "api":"AIzaSyBZMnOUbjbBBXuEvagDWOU8VEG_XZ6FaTc",
+              "api":"",
               "role":"teacher"
             },{
               headers: {

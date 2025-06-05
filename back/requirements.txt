@@ -18,3 +18,4 @@ Django
 djangorestframework
 django-cors-headers
 uvicorn
+python-decouple

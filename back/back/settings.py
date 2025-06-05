@@ -98,8 +98,11 @@ DATABASES = {
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),
-        "HOST": "127.0.0.1",
+        "HOST": "dpg-d10v2rje5dus73angc0g-a.oregon-postgres.render.com",
         "PORT": "5432",
+        "OPTIONS": {
+    "sslmode": "require"
+    }   
     }
 }
 

@@ -11,6 +11,7 @@ from PIL import Image
 from io import BytesIO
 from PIL import Image
 import numpy as np
+from decouple import config
 # Load MobileNetV2 model for feature extraction
 model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
 tokenizer = open_clip.get_tokenizer('ViT-B-32')
@@ -22,7 +23,8 @@ model = model.to(device).eval()
 reader = easyocr.Reader(['en'])
 
 # Initialize ChromaDB
-chroma_client = chromadb.PersistentClient(path="./chroma_db")  
+CHROMA_DB_URL=config('chroma_url')
+chroma_client = chromadb.HttpClient(host=CHROMA_DB_URL)
 
 
 def compress_base64(img):

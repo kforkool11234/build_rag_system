@@ -11,7 +11,7 @@ from transformers import pipeline
 import open_clip
 import chromadb
 from tqdm.auto import tqdm
-
+from decouple import config
 # Download NLTK resources
 nltk.download('punkt')
 tokenizer = open_clip.get_tokenizer('ViT-B-32')
@@ -28,7 +28,8 @@ summarizer = pipeline(
 embedding_model,_,_ = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
 
 # Initialize Chroma DB
-chroma_client = chromadb.PersistentClient(path="chroma_db")
+CHROMA_DB_URL=config('chroma_url')
+chroma_client = chromadb.HttpClient(host=CHROMA_DB_URL)
 
 
 

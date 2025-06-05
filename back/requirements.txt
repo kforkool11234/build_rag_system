@@ -6,7 +6,7 @@ chromadb
 easyocr
 tensorflow
 torch
-open_clip
+open_clip_torch  # Corrected package name for open_clip
 Pillow
 PyPDF2
 python-pptx

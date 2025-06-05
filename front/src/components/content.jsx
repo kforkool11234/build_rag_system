@@ -67,7 +67,7 @@ function Content() {
             const botMessageText = await axios.post("http://127.0.0.1:8000/search/",{
               "query":response.data.message,
               "c_name":coll,
-              "api":"",
+              "api":process.env.gemeni_api,
               "role":"teacher"
             },{
               headers: {
@@ -77,7 +77,7 @@ function Content() {
             });
             const botPayload = {
                 c_name: coll,
-                sender: 'Bot', // This is the bot's message
+                sender: 'vector', // This is the bot's message
                 message: botMessageText.data.result,
                 // 'user' (recipient) is still handled by serializer as the authenticated user
             };

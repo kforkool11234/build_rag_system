@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  chroma:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/app/chroma_storage
+    environment:
+      - CHROMA_DB_DIR=/app/chroma_storage
+
+volumes:
+  chroma_data:

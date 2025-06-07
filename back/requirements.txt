@@ -21,3 +21,4 @@ uvicorn
 python-decouple
 psycopg2-binary
 gunicorn
+rest_framework_simplejwt

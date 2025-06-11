@@ -11,4 +11,4 @@ WORKDIR /app
 ENV CHROMA_PORT=8000
 
 # Run ChromaDB API server
-CMD ["uvicorn", "run", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "chromadb.app:app", "--host", "0.0.0.0", "--port", "8000"]

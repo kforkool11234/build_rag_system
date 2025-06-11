@@ -6,7 +6,7 @@ chromadb
 easyocr
 tensorflow
 torch
-open_clip_torch  # Corrected package name for open_clip
+open_clip_torch  
 Pillow
 PyPDF2
 python-pptx
@@ -21,4 +21,4 @@ uvicorn
 python-decouple
 psycopg2-binary
 gunicorn
-rest_framework_simplejwt
+djangorestframework-simplejwt
